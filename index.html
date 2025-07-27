@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NATERIDA - Environmental Monitoring & Exploration Robot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        .sensor-value {
+            transition: all 0.3s ease;
+        }
+        .map-container {
+            height: 400px;
+            background-image: url('https://maps.googleapis.com/maps/api/staticmap?center=0,0&zoom=1&size=800x400&maptype=terrain&key=YOUR_API_KEY');
+            background-size: cover;
+            background-position: center;
+        }
+        .animated-alert {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+    <!-- Navigation -->
+    <nav class="bg-green-800 text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center">
+                        <i class="fas fa-robot text-2xl mr-2"></i>
+                        <span class="text-xl font-bold">NATERIDA</span>
+                    </div>
+                </div>
+
+                <div class="-mr-2 flex items-center md:hidden">
+                    <button type="button" class="inline-flex items-center justify-center p-2 rounded-md text-green-200 hover:text-white hover:bg-green-700 focus:outline-none" id="mobile-menu-button">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Status Bar -->
+        <div class="bg-white shadow rounded-lg mb-6 p-4">
+            <div class="flex flex-wrap items-center justify-between">
+                <div class="flex items-center">
+                    <div class="mr-4">
+                        <span class="text-gray-500 text-sm">Robot Status:</span>
+                        <span class="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">Active</span>
+                    </div>
+                    <div class="mr-4">
+                        <span class="text-gray-500 text-sm">Battery:</span>
+                        <span class="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">87%</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500 text-sm">Connection:</span>
+                        <span class="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">Strong</span>
+                    </div>
+                </div>
+                <div class="mt-2 sm:mt-0">
+                    <button class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center">
+                        <i class="fas fa-sync-alt mr-2"></i> Refresh Data
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alert Section -->
+        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-lg animated-alert hidden" id="alert-box">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center">
+                    <i class="fas fa-exclamation-circle mr-2"></i>
+                    <p class="font-medium">Alert: High gas levels detected in Sector 4!</p>
+                </div>
+                <button class="text-red-700 hover:text-red-900" id="close-alert">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Dashboard Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Temperature Card -->
+            <div class="dashboard-card bg-white rounded-lg shadow-md p-6 transition duration-300 ease-in-out">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm font-medium">Temperature</p>
+                        <p class="text-3xl font-bold mt-1"><span id="temperature-value">24.5</span>°C</p>
+                    </div>
+                    <div class="p-3 rounded-full bg-red-100 text-red-600">
+                        <i class="fas fa-temperature-high text-2xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="flex items-center text-sm text-gray-500">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        <span>Last updated: <span id="temp-time">Just now</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Humidity Card -->
+            <div class="dashboard-card bg-white rounded-lg shadow-md p-6 transition duration-300 ease-in-out">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm font-medium">Humidity</p>
+                        <p class="text-3xl font-bold mt-1"><span id="humidity-value">65</span>%</p>
+                    </div>
+                    <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                        <i class="fas fa-tint text-2xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="flex items-center text-sm text-gray-500">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        <span>Last updated: <span id="humidity-time">Just now</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Air Quality Card -->
+            <div class="dashboard-card bg-white rounded-lg shadow-md p-6 transition duration-300 ease-in-out">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm font-medium">Air Quality</p>
+                        <p class="text-3xl font-bold mt-1"><span id="air-quality-value">32</span> AQI</p>
+                    </div>
+                    <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                        <i class="fas fa-wind text-2xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="flex items-center text-sm text-gray-500">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        <span>Last updated: <span id="air-quality-time">Just now</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Light Level Card -->
+            <div class="dashboard-card bg-white rounded-lg shadow-md p-6 transition duration-300 ease-in-out">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm font-medium">Light Level</p>
+                        <p class="text-3xl font-bold mt-1"><span id="light-value">780</span> lux</p>
+                    </div>
+                    <div class="p-3 rounded-full bg-purple-100 text-purple-600">
+                        <i class="fas fa-lightbulb text-2xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="flex items-center text-sm text-gray-500">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        <span>Last updated: <span id="light-time">Just now</span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Environmental Data Chart -->
+            <div class="bg-white rounded-lg shadow-md p-6 lg:col-span-2">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold text-gray-800">Environmental Data Trends</h2>
+                    <div class="flex space-x-2">
+                        <button class="px-3 py-1 bg-gray-100 text-gray-700 rounded-md text-sm">24h</button>
+                        <button class="px-3 py-1 bg-green-600 text-white rounded-md text-sm">7d</button>
+                        <button class="px-3 py-1 bg-gray-100 text-gray-700 rounded-md text-sm">30d</button>
+                    </div>
+                </div>
+                <div class="h-64 bg-gray-50 rounded-md flex items-center justify-center">
+                    <p class="text-gray-400">Chart visualization of temperature, humidity, and air quality over time</p>
+                </div>
+                <div class="mt-4 grid grid-cols-3 gap-4">
+                    <div class="text-center">
+                        <p class="text-sm text-gray-500">Avg Temperature</p>
+                        <p class="font-semibold">23.8°C</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-sm text-gray-500">Avg Humidity</p>
+                        <p class="font-semibold">68%</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-sm text-gray-500">Peak AQI</p>
+                        <p class="font-semibold">42</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Robot Control Panel -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4">Robot Control</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Movement</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button class="bg-gray-200 hover:bg-gray-300 p-3 rounded-md flex items-center justify-center">
+                                <i class="fas fa-arrow-up"></i>
+                            </button>
+                            <button class="bg-gray-200 hover:bg-gray-300 p-3 rounded-md flex items-center justify-center">
+                                <i class="fas fa-arrow-left"></i>
+                            </button>
+                            <button class="bg-gray-200 hover:bg-gray-300 p-3 rounded-md flex items-center justify-center">
+                                <i class="fas fa-arrow-right"></i>
+                            </button>
+                            <button class="bg-gray-200 hover:bg-gray-300 p-3 rounded-md flex items-center justify-center">
+                                <i class="fas fa-arrow-down"></i>
+                            </button>
+                            <button class="col-span-3 bg-gray-200 hover:bg-gray-300 p-2 rounded-md flex items-center justify-center">
+                                <i class="fas fa-stop mr-2"></i> Stop
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Speed</label>
+                        <input type="range" min="0" max="100" value="50" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        <div class="flex justify-between text-xs text-gray-500 mt-1">
+                            <span>Slow</span>
+                            <span>Medium</span>
+                            <span>Fast</span>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Functions</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button class="bg-blue-100 hover:bg-blue-200 text-blue-800 p-2 rounded-md flex items-center justify-center text-sm">
+                                <i class="fas fa-camera mr-2"></i> Capture
+                            </button>
+                            <button class="bg-blue-100 hover:bg-blue-200 text-blue-800 p-2 rounded-md flex items-center justify-center text-sm">
+                                <i class="fas fa-video mr-2"></i> Record
+                            </button>
+                            <button class="bg-blue-100 hover:bg-blue-200 text-blue-800 p-2 rounded-md flex items-center justify-center text-sm">
+                                <i class="fas fa-broadcast-tower mr-2"></i> Scan
+                            </button>
+                            <button class="bg-blue-100 hover:bg-blue-200 text-blue-800 p-2 rounded-md flex items-center justify-center text-sm">
+                                <i class="fas fa-map-marked-alt mr-2"></i> Map
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="pt-2">
+                        <button class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-md font-medium flex items-center justify-center">
+                            <i class="fas fa-rocket mr-2"></i> Emergency Dispatch
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Camera Feed -->
+            <div class="bg-white rounded-lg shadow-md p-6 lg:col-span-2">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold text-gray-800">Live Camera Feed</h2>
+                    <div class="flex space-x-2">
+                        <button class="px-3 py-1 bg-gray-100 text-gray-700 rounded-md text-sm flex items-center">
+                            <i class="fas fa-expand mr-1"></i> Fullscreen
+                        </button>
+                    </div>
+                </div>
+                <div class="h-64 bg-black rounded-md flex items-center justify-center relative">
+                    <div class="absolute top-2 left-2 flex space-x-2">
+                        <span class="bg-red-500 text-white text-xs px-2 py-1 rounded-full">LIVE</span>
+                        <span class="bg-gray-800 text-white text-xs px-2 py-1 rounded-full">1080p</span>
+                    </div>
+                    <div class="text-white text-center">
+                        <i class="fas fa-video text-4xl mb-2"></i>
+                        <p>Camera feed from NATERIDA</p>
+                    </div>
+                </div>
+                <div class="mt-4 grid grid-cols-4 gap-2">
+                    <button class="bg-gray-100 hover:bg-gray-200 p-2 rounded-md flex items-center justify-center">
+                        <i class="fas fa-thermometer-half"></i>
+                    </button>
+                    <button class="bg-gray-100 hover:bg-gray-200 p-2 rounded-md flex items-center justify-center">
+                        <i class="fas fa-gas-pump"></i>
+                    </button>
+                    <button class="bg-gray-100 hover:bg-gray-200 p-2 rounded-md flex items-center justify-center">
+                        <i class="fas fa-lightbulb"></i>
+                    </button>
+                    <button class="bg-gray-100 hover:bg-gray-200 p-2 rounded-md flex items-center justify-center">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Location & Exploration Data -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4">Exploration Data</h2>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Current Location</label>
+                    <div class="map-container rounded-md mb-2">
+                        <!-- Map would be rendered here -->
+                    </div>
+                    <p class="text-sm text-gray-600">GPS: 12.3456° N, 98.7654° E</p>
+                </div>
+                
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Exploration Status</label>
+                        <div class="flex items-center">
+                            <div class="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+                                <div class="h-full bg-green-500 rounded-full" style="width: 65%"></div>
+                            </div>
+                            <span class="ml-2 text-sm text-gray-600">65%</span>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Hazard Detection</label>
+                        <div class="space-y-1">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                                <span class="text-sm">Structural Stability: Safe</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
+                                <span class="text-sm">Gas Levels: Moderate</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                                <span class="text-sm">Temperature: Normal</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="pt-2">
+                        <button class="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-2 rounded-md font-medium flex items-center justify-center">
+                            <i class="fas fa-exclamation-triangle mr-2"></i> Mark Hazard Zone
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Surveillance & Recognition -->
+            <div class="bg-white rounded-lg shadow-md p-6 lg:col-span-3">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold text-gray-800">Surveillance & Recognition</h2>
+                    <div class="flex space-x-2">
+                        <button class="px-3 py-1 bg-gray-100 text-gray-700 rounded-md text-sm">License Plates</button>
+                        <button class="px-3 py-1 bg-green-600 text-white rounded-md text-sm">Wildlife</button>
+                        <button class="px-3 py-1 bg-gray-100 text-gray-700 rounded-md text-sm">Objects</button>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-gray-50 rounded-md p-4">
+                        <div class="flex items-center mb-2">
+                            <div class="bg-blue-100 p-2 rounded-full mr-3">
+                                <i class="fas fa-car text-blue-600"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium">Vehicle Detection</p>
+                                <p class="text-sm text-gray-500">Active</p>
+                            </div>
+                        </div>
+                        <div class="text-sm text-gray-700">
+                            <p class="mb-1">Last detected: 2 min ago</p>
+                            <p>License plate: ABC-1234</p>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-md p-4">
+                        <div class="flex items-center mb-2">
+                            <div class="bg-green-100 p-2 rounded-full mr-3">
+                                <i class="fas fa-paw text-green-600"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium">Wildlife Monitoring</p>
+                                <p class="text-sm text-gray-500">Active</p>
+                            </div>
+                        </div>
+                        <div class="text-sm text-gray-700">
+                            <p class="mb-1">Last detected: 15 min ago</p>
+                            <p>Species: Bengal Tiger</p>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-md p-4">
+                        <div class="flex items-center mb-2">
+                            <div class="bg-purple-100 p-2 rounded-full mr-3">
+                                <i class="fas fa-user-shield text-purple-600"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium">Security Alert</p>
+                                <p class="text-sm text-gray-500">No threats</p>
+                            </div>
+                        </div>
+                        <div class="text-sm text-gray-700">
+                            <p class="mb-1">Last scan: 5 min ago</p>
+                            <p>Perimeter secure</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-gray-50 rounded-md p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-medium">Recent Alerts</h3>
+                            <button class="text-blue-600 text-sm">View All</button>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex items-start">
+                                <div class="bg-red-100 p-1 rounded-full mr-2 mt-1">
+                                    <i class="fas fa-exclamation-circle text-red-500 text-xs"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium">Unauthorized vehicle detected</p>
+                                    <p class="text-xs text-gray-500">Sector 3, 10:42 AM</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <div class="bg-yellow-100 p-1 rounded-full mr-2 mt-1">
+                                    <i class="fas fa-exclamation-triangle text-yellow-500 text-xs"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium">Animal approaching restricted zone</p>
+                                    <p class="text-xs text-gray-500">Sector 1, 09:15 AM</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-md p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-medium">Emergency Protocols</h3>
+                            <button class="text-blue-600 text-sm">Learn More</button>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button class="bg-red-100 hover:bg-red-200 text-red-800 p-2 rounded-md text-sm flex items-center justify-center">
+                                <i class="fas fa-ambulance mr-1"></i> Medical
+                            </button>
+                            <button class="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 p-2 rounded-md text-sm flex items-center justify-center">
+                                <i class="fas fa-fire mr-1"></i> Fire
+                            </button>
+                            <button class="bg-blue-100 hover:bg-blue-200 text-blue-800 p-2 rounded-md text-sm flex items-center justify-center">
+                                <i class="fas fa-shield-alt mr-1"></i> Security
+                            </button>
+                            <button class="bg-purple-100 hover:bg-purple-200 text-purple-800 p-2 rounded-md text-sm flex items-center justify-center">
+                                <i class="fas fa-biohazard mr-1"></i> Hazard
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+            </div>
+            <div class="mt-8 pt-8 border-t border-gray-700 text-sm text-gray-400 text-center">
+                <p>Techengers</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile menu toggle
+        document.getElementById('mobile-menu-button').addEventListener('click', function() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        });
+
+        // Close alert
+        document.getElementById('close-alert').addEventListener('click', function() {
+            document.getElementById('alert-box').classList.add('hidden');
+        });
+
+        // Simulate sensor data updates
+        function updateSensorData() {
+            // Temperature (between 20-30°C)
+            const temp = (20 + Math.random() * 10).toFixed(1);
+            document.getElementById('temperature-value').textContent = temp;
+            document.getElementById('temperature-value').className = 'sensor-value ' + 
+                (temp > 28 ? 'text-red-600' : temp < 22 ? 'text-blue-600' : 'text-gray-800');
+            
+            // Humidity (between 50-80%)
+            const humidity = Math.floor(50 + Math.random() * 30);
+            document.getElementById('humidity-value').textContent = humidity;
+            document.getElementById('humidity-value').className = 'sensor-value ' + 
+                (humidity > 75 ? 'text-blue-600' : humidity < 55 ? 'text-yellow-600' : 'text-gray-800');
+            
+            // Air Quality (between 10-100 AQI)
+            const aqi = Math.floor(10 + Math.random() * 90);
+            document.getElementById('air-quality-value').textContent = aqi;
+            document.getElementById('air-quality-value').className = 'sensor-value ' + 
+                (aqi > 50 ? 'text-red-600' : aqi > 30 ? 'text-yellow-600' : 'text-green-600');
+            
+            // Light (between 200-1200 lux)
+            const light = Math.floor(200 + Math.random() * 1000);
+            document.getElementById('light-value').textContent = light;
+            
+            // Update times
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            document.querySelectorAll('[id$="-time"]').forEach(el => {
+                el.textContent = timeStr;
+            });
+            
+            // Randomly show alert for demo purposes
+            if (Math.random() > 0.7) {
+                document.getElementById('alert-box').classList.remove('hidden');
+            }
+        }
+
+        // Initial update
+        updateSensorData();
+        
+        // Update every 5 seconds
+        setInterval(updateSensorData, 5000);
+    </script>
+</body>
+</html>
